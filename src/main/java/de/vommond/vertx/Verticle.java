@@ -1,10 +1,11 @@
 package de.vommond.vertx;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.mongo.MongoClient;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -17,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 public class Verticle extends AbstractVerticle {
 	
-	public static final String BUS_IMAGES_UPLOADED = "images.uploaded";
 		
 	private Logger logger = LoggerFactory.getLogger(Verticle.class);
 
@@ -36,14 +36,39 @@ public class Verticle extends AbstractVerticle {
 	
 		StaticHandler handler = StaticHandler.create();
 		
+		/**
+		 * Session
+		 */
+		router.route(HttpMethod.GET, "/session/:key.json").handler(context->{
+			String key = context.request().getParam("key");
+			JsonObject value = context.session().get(key);
+			if(value!=null){
+				context.response().end(value.encode());
+			} else {
+				context.response().end("{}");
+			}
+	
+		});
+		
+		
+		router.route(HttpMethod.POST, "/session/:key.json").handler(context->{
+			JsonObject value = context.getBodyAsJson();
+			String key = context.request().getParam("key");
+			context.session().put(key, value);
+			context.response().end("{}");
+		});
+		
+		router.route(HttpMethod.GET, "/session/delete").handler(context->{
+			context.session().destroy();
+			context.response().end("{}");
+		
+			
+		});
 
 		router.route().handler(handler).failureHandler(frc -> {
-			
 			if(frc.failure()!=null){
 				frc.failure().printStackTrace();
-			} else {
-				System.err.println("StaticHandler.default > " + frc.request().path());
-			}
+			} 
 			HttpServerResponse response = frc.response();
 			response.sendFile("webroot/index.html");
 		});

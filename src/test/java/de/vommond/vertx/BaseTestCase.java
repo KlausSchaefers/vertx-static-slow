@@ -16,6 +16,8 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -47,9 +49,6 @@ public class BaseTestCase {
 	    httpClient = HttpClients.custom()
 	             .setDefaultCookieStore(cookieStore)
 	             .build();
-	    
-//	    httpClient.getParams().setParameter("http.socket.timeout", new Integer(0));
-//	    httpClient.getParams().setParameter("http.connection.stalecheck", new Boolean(true));
 
 		
 	}
@@ -175,7 +174,7 @@ public class BaseTestCase {
 		
 				long end = System.currentTimeMillis();
 				
-				log("getString", "exit > " + url+ " took :" + (end - start) + "ms");
+				debug("getString", "exit > " + url+ " took :" + (end - start) + "ms");
 			
 				resp.close();
 				return result;
@@ -193,6 +192,78 @@ public class BaseTestCase {
       
 	
 		return null;
+		
+	}
+	
+	public JsonObject post(String url, JsonObject data){
+	
+		url = "http://localhost:8080" + url;
+		try{
+		
+			HttpPost post = new HttpPost(url);
+			 
+			StringEntity input = new StringEntity(data.encode());
+			input.setContentType("application/json");
+			post.setEntity(input);
+		 
+			long start = System.currentTimeMillis();
+			CloseableHttpResponse resp = httpClient.execute(post);
+			if(resp.getStatusLine().getStatusCode() == 200){
+				InputStream is = resp.getEntity().getContent();
+ 				String json = CharStreams.toString( new InputStreamReader(is ));
+				resp.close();
+				long end= System.currentTimeMillis();
+				debug("post", "exit > " + url+ " took :" + (end - start) + "ms");
+				return new JsonObject(json);
+			} else {
+				resp.close();
+				return new JsonObject().put("error",resp.getStatusLine().getStatusCode() );
+			}
+		
+			
+		} catch(Exception e){
+			e.printStackTrace();
+		
+			return new JsonObject().put("error", "error");
+		}
+		
+	
+	}
+	
+	public JsonObject get(String url){
+
+		url = "http://localhost:8080" + url;
+		try {
+			
+			HttpGet httpget = new HttpGet(url);
+			long start = System.currentTimeMillis();
+	        CloseableHttpResponse resp = httpClient.execute(httpget);
+	        
+	        if(resp.getStatusLine().getStatusCode() == 200){
+				
+				InputStream is = resp.getEntity().getContent();
+ 
+				String json = CharStreams.toString( new InputStreamReader(is ));
+				resp.close();
+				long end= System.currentTimeMillis();
+				
+				debug("get", "exit > " + url+ " took :" + (end - start) + "ms");
+				
+				return new JsonObject(json);
+				
+			} else {
+				  resp.close();
+				return new JsonObject().put("error",resp.getStatusLine().getStatusCode() );
+			}
+
+	    
+	      
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new JsonObject().put("error", "error");
+		}
+      
+	
 		
 	}
 	
